@@ -43,7 +43,7 @@ except Exception as e:
 
 # Load the dataset
 try:
-    data = pd.read_excel("C:/Users/ajayk/Downloads/Cars_leaned.xlsx")  # Update with your actual path
+    data = pd.read_excel("Cars.xlsx")  # Update with your actual path
     logger.info("Dataset loaded successfully")
 except FileNotFoundError as e:
     logger.error(f"Dataset file not found: {e}")
