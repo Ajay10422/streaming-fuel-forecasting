@@ -3,14 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
+    <title>EnerGuide CO2 Predictor</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;600&display=swap">
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/script.js" defer></script>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">CO2 Predictor</a>
+            <div class="hamburger">☰</div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#stats">Statistics</a></li>
+                <li><a href="http://vehicles.nrcan.gc.ca" target="_blank">Learn More</a></li>
+            </ul>
+        </div>
+    </nav>
+
     <div class="background">
         <!-- EnerGuide Label -->
         <div class="energuide-label">
-            <!-- Header Section -->
             <header class="energuide-header">
                 <div class="header-left">
                     <img src="/static/canada-logo.png" alt="Canada Logo" class="canada-logo">
@@ -20,248 +36,226 @@
                     <h1>ENERGUIDE</h1>
                 </div>
                 <div class="header-right">
-                    <p>Gasoline Vehicle<br>Véhicule à essence</p>
+                    <p>Gasoline Vehicle</p>
                 </div>
             </header>
 
-            <!-- Form Section -->
             <section class="form-section">
-                <h2>Fuel Consumption / Consommation de carburant</h2>
+                <h2>Fuel Consumption Predictor</h2>
                 <form id="predict-form" class="predict-form">
-                    <label>Model Year / Année du modèle: 
-                        <input type="number" name="vehicle_year" min="2017" max="2025" value="2020" required>
+                    <div class="input-group">
+                        <label for="vehicle_year">Model Year</label>
+                        <input type="number" id="vehicle_year" name="vehicle_year" min="2017" max="2025" value="2020" required>
                         <span class="error-message" id="vehicle-year-error"></span>
-                    </label>
-                    <label>Make / Marque: 
-                        <select name="make" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="make">Make</label>
+                        <select id="make" name="make" required>
                             {% for make in makes %}
-                                <option value="{{ make }}" {% if make == 'Toyota' %}selected{% endif %}>{{ make }}</option>
+                                <option value="{{ make }}">{{ make }}</option>
                             {% endfor %}
                         </select>
-                        <span class="error-message" id="make-error"></span>
-                    </label>
-                    <label>Transmission / Transmission: 
-                        <select name="transmission" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="transmission">Transmission</label>
+                        <select id="transmission" name="transmission" required>
                             {% for transmission in transmissions %}
-                                <option value="{{ transmission }}" {% if transmission == 'Automated Manual' %}selected{% endif %}>{{ transmission }}</option>
+                                <option value="{{ transmission }}">{{ transmission }}</option>
                             {% endfor %}
                         </select>
-                        <span class="error-message" id="transmission-error"></span>
-                    </label>
-                    <label>Fuel Type / Type de carburant: 
-                        <select name="fuel_type" required>
-                            {% for fuel_type in fuel_types %}
-                                <option value="{{ fuel_type }}" {% if fuel_type == 'X' %}selected{% endif %}>{{ fuel_type }}</option>
-                            {% endfor %}
+                    </div>
+                    <div class="input-group">
+                        <label for="fuel_type">Fuel Type</label>
+                        <select id="fuel_type" name="fuel_type" required>
+                            <option value="D">Diesel (D)</option>
+                            <option value="E">E85 (E)</option>
+                            <option value="X" selected>Regular Gasoline (X)</option>
+                            <option value="Z">Premium Gasoline (Z)</option>
                         </select>
-                        <span class="error-message" id="fuel-type-error"></span>
-                    </label>
+                    </div>
                     <div class="form-buttons">
-                        <button type="submit">Predict / Prédire</button>
-                        <button type="button" id="reset-form">Reset / Réinitialiser</button>
+                        <button type="submit">Predict</button>
+                        <button type="button" id="reset-form">Reset</button>
                     </div>
-                    <div class="loading-indicator" id="loading-indicator" style="display: none;">
-                        <p>Loading...</p>
-                    </div>
-                    <div class="form-error" id="form-error" style="display: none;"></div>
+                    <div class="loading-indicator" id="loading-indicator">Loading...</div>
                 </form>
             </section>
 
-            <!-- Fuel Consumption (Dynamic) -->
             <section class="fuel-consumption">
+                <h3>Fuel Metrics</h3>
                 <div class="fuel-values">
-                    <div class="fuel-box">
-                        <span class="fuel-value" id="combined-fuel">{% if combined_fuel %}{{ combined_fuel }}{% else %}9.0{% endif %}</span>
-                        <p>L/100 km<br>combinée</p>
+                    <div class="fuel-ring">
+                        <svg class="progress-ring" width="120" height="120">
+                            <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            <circle class="progress-ring-fill" id="combined-ring" stroke="url(#ringGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            <defs>
+                                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#86868B;stop-opacity:1"/>
+                                    <stop offset="100%" style="stop-color:#FF3B30;stop-opacity:1"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span class="fuel-value" id="combined-fuel">9.0</span>
+                        <p>L/100 km Combined</p>
                     </div>
-                    <div class="fuel-box">
-                        <span class="fuel-value" id="city-fuel">{% if city_fuel %}{{ city_fuel }}{% else %}10.7{% endif %}</span>
-                        <p>L/100 km<br>ville</p>
+                    <div class="fuel-ring">
+                        <svg class="progress-ring" width="120" height="120">
+                            <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            <circle class="progress-ring-fill" id="city-ring" stroke="url(#ringGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                        </svg>
+                        <span class="fuel-value" id="city-fuel">10.7</span>
+                        <p>L/100 km City</p>
                     </div>
-                    <div class="fuel-box">
-                        <span class="fuel-value" id="highway-fuel">{% if highway_fuel %}{{ highway_fuel }}{% else %}7.4{% endif %}</span>
-                        <p>L/100 km<br>route</p>
+                    <div class="fuel-ring">
+                        <svg class="progress-ring" width="120" height="120">
+                            <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            <circle class="progress-ring-fill" id="highway-ring" stroke="url(#ringGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                        </svg>
+                        <span class="fuel-value" id="highway-fuel">7.4</span>
+                        <p>L/100 km Highway</p>
                     </div>
-                    <div class="fuel-box">
-                        <span class="fuel-value" id="combined-mpg">{% if combined_mpg %}{{ combined_mpg }}{% else %}31{% endif %}</span>
-                        <p>mi/gal</p>
+                    <div class="fuel-ring">
+                        <svg class="progress-ring" width="120" height="120">
+                            <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            <circle class="progress-ring-fill" id="mpg-ring" stroke="url(#ringGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                        </svg>
+                        <span class="fuel-value" id="combined-mpg">31</span>
+                        <p>MPG</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Annual Fuel Cost (Dynamic) -->
             <section class="fuel-cost">
-                <p>Annual Fuel Cost / Coût annuel en carburant</p>
-                <p>for an annual distance of 20,000 km, and an average fuel price of $1.09 per litre<br>pour une distance annuelle de 20 000 km, et un prix moyen du carburant de 1,09 $ par litre</p>
-                <p class="cost">$ <span id="annual-fuel-cost">{% if annual_fuel_cost %}{{ annual_fuel_cost }}{% else %}1,962{% endif %}</span></p>
+                <p>Annual Fuel Cost</p>
+                <p>Based on 20,000 km annually</p>
+                <p class="cost">$<span id="annual-fuel-cost">1,962</span></p>
             </section>
 
-            <!-- Vehicle Class Range (Dynamic) -->
-            <section class="vehicle-class">
-                <p>Vehicle class range from / Les véhicules de cette classe font entre</p>
-                <p><span id="vehicle-class-range">{% if vehicle_class_range %}{{ vehicle_class_range }}{% else %}7.4 – 14.4{% endif %}</span> L/100 km</p>
-                <p>L<sub>e</sub> is gasoline litre equivalent / L<sub>e</sub> signifie litre équivalent d'essence</p>
-            </section>
-
-            <!-- CO2 Emissions (Dynamic) -->
-            <section class="co2-emissions">
-                <p>Carbon Dioxide Rating / Indice de dioxyde de carbone</p>
-                <div class="rating-bar">
-                    <span class="co2-value" id="co2-value">{% if prediction %}{{ prediction }}{% else %}207{% endif %} g/km</span>
-                    <div class="bar">
-                        <span class="fill" id="co2-bar" style="width: {% if prediction %}{{ (prediction / 450) * 100 }}{% else %}46{% endif %}%;"></span>
+            <section class="ratings-section">
+                <h3>Environmental Ratings</h3>
+                <div class="ratings-container">
+                    <div class="rating">
+                        <p>CO2 Emissions</p>
+                        <div class="circular-progress">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                                <circle class="progress-ring-fill" id="co2-bar" stroke="url(#ratingGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                                <defs>
+                                    <linearGradient id="ratingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#86868B;stop-opacity:1"/>
+                                        <stop offset="100%" style="stop-color:#FF3B30;stop-opacity:1"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <span class="progress-value" id="co2-value">201.4 g/km</span>
+                        </div>
+                        <p class="rating-info">Lower is better</p>
                     </div>
-                    <span class="rating-label">1</span>
-                    <span class="rating-label best">10 Best/meilleur</span>
-                </div>
-                <p>Tailpipe emissions only / Émissions du tuyau d'échappement seulement</p>
-            </section>
-
-            <!-- Smog Rating (Dynamic) -->
-            <section class="smog-rating">
-                <p>Smog Rating / Indice de smog</p>
-                <div class="rating-bar">
-                    <span class="smog-value" id="smog-value">{% if smog_rating %}{{ smog_rating }}{% else %}10{% endif %}</span>
-                    <div class="bar">
-                        <span class="fill" id="smog-bar" style="width: {% if smog_rating %}{{ (smog_rating / 10) * 100 }}{% else %}100{% endif %}%;"></span>
+                    <div class="rating">
+                        <p>CO2 Rating</p>
+                        <div class="circular-progress">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                                <circle class="progress-ring-fill" id="co2-rating-bar" stroke="url(#ratingGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            </svg>
+                            <span class="progress-value" id="co2-rating-value">7</span>
+                        </div>
+                        <p class="rating-info">Lower is better</p>
                     </div>
-                    <span class="rating-label">1</span>
-                    <span class="rating-label best">10 Best/meilleur</span>
+                    <div class="rating">
+                        <p>Smog Rating</p>
+                        <div class="circular-progress">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                                <circle class="progress-ring-fill" id="smog-bar" stroke="url(#ratingGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            </svg>
+                            <span class="progress-value" id="smog-value">8</span>
+                        </div>
+                        <p class="rating-info">Lower is better</p>
+                    </div>
+                    <div class="rating">
+                        <p>Eco Score</p>
+                        <div class="circular-progress">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" stroke="#E5E5EA" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                                <circle class="progress-ring-fill" id="eco-score-bar" stroke="url(#ratingGradient)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+                            </svg>
+                            <span class="progress-value" id="eco-score-value">7.5</span>
+                        </div>
+                        <p class="rating-info">Lower is better</p>
+                    </div>
                 </div>
             </section>
 
-            <!-- Footer -->
+            <section class="additional-metrics">
+                <h3>Additional Metrics</h3>
+                <div class="metrics-container">
+                    <div class="metric-card">
+                        <p>Annual CO₂ Tax</p>
+                        <span id="co2-tax">N/A</span> CAD
+                    </div>
+                    <div class="metric-card">
+                        <p>Fuel Efficiency Score</p>
+                        <span id="fuel-efficiency-score">N/A</span>
+                    </div>
+                    <div class="metric-card">
+                        <p>Cost per Passenger-Km</p>
+                        <span id="cost-per-passenger-km">N/A</span> CAD
+                    </div>
+                </div>
+            </section>
+
             <footer class="energuide-footer">
-                <p>Estimates are based on Government of Canada approved criteria and testing methods. Vehicle’s actual fuel consumption will vary.</p>
-                <p>Estimations établies selon des méthodes d’essai et des critères approuvés par le gouvernement du Canada. La consommation de carburant réelle du véhicule variera.</p>
-                <p>For more information visit / Pour plus d’information visitez <a href="http://vehicles.nrcan.gc.ca">vehicles.nrcan.gc.ca</a></p>
-                <img src="/static/qr-code.png" alt="QR Code" class="qr-code">
+                <p>Estimates based on Government of Canada testing methods.</p>
+                <p><a href="http://vehicles.nrcan.gc.ca">vehicles.nrcan.gc.ca</a></p>
+                <button class="qr-button">Show QR Code</button>
+                <div class="qr-modal" id="qr-modal">
+                    <div class="qr-content">
+                        <span class="close">×</span>
+                        <img src="/static/qr-code.png" alt="QR Code" class="qr-code">
+                    </div>
+                </div>
             </footer>
         </div>
 
+        <!-- About Section -->
+        <section class="about-section" id="about">
+            <h2>About This Tool</h2>
+            <p>This CO2 Emissions Predictor uses machine learning to estimate fuel consumption, CO2 emissions, and smog ratings based on vehicle data from 2017-2025.</p>
+        </section>
+
         <!-- Statistics Section -->
-        <section class="stats-section">
+        <section class="stats-section" id="stats">
             <h2>Key Statistics</h2>
-            <div class="stats-table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            {% for column in stats.keys() %}
-                                <th>{{ column }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for metric in stats['Model year'].keys() %}
-                            <tr>
-                                <td>{{ metric }}</td>
-                                {% for column in stats.keys() %}
-                                    <td>{{ stats[column][metric] | round(2) }}</td>
-                                {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <p>Average CO2: 207 g/km | Average Fuel: 9.0 L/100 km | Average Smog: 10</p>
+        </section>
+
+        <!-- Emission Insights Section -->
+        <section class="top-cars-section">
+            <h2>Emission Insights</h2>
+            <div class="charts-container">
+                <div class="chart-wrapper">
+                    <h3>Average CO₂ Emissions by Fuel Type</h3>
+                    <canvas id="fuelEmissionsChart"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>Average CO₂ Emissions by Transmission Type</h3>
+                    <canvas id="transmissionEmissionsChart"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>CO₂ Emissions by Engine Size</h3>
+                    <canvas id="engineEmissionsChart"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>Top 5 Combinations for Lowest CO₂ Emissions</h3>
+                    <canvas id="topCombinationsChart"></canvas>
+                </div>
             </div>
         </section>
 
-        <footer>
-            <p>Powered by FastAPI | RMSE: 2.61 g/km</p>
+        <footer class="site-footer">
+            <p>Algorithm Avengers</p>
         </footer>
     </div>
-
-    <!-- JavaScript for form handling -->
-    <script src="/static/script.js"></script>
-    <script>
-        document.getElementById("predict-form").addEventListener("submit", async function(event) {
-            event.preventDefault();
-
-            // Clear previous error messages
-            document.querySelectorAll(".error-message").forEach(el => el.textContent = "");
-            const formError = document.getElementById("form-error");
-            formError.style.display = "none";
-            formError.textContent = "";
-
-            // Get form data
-            const formData = new FormData(this);
-            const vehicleYear = formData.get("vehicle_year");
-
-            // Client-side validation for Model year
-            let hasError = false;
-            if (!vehicleYear || vehicleYear < 2017 || vehicleYear > 2025) {
-                document.getElementById("vehicle-year-error").textContent = "Please select a year between 2017 and 2025.";
-                hasError = true;
-            }
-            if (hasError) return;
-
-            // Show loading indicator
-            const loadingIndicator = document.getElementById("loading-indicator");
-            loadingIndicator.style.display = "block";
-
-            try {
-                // Send AJAX request to /predict_json
-                const response = await fetch("/predict_json", {
-                    method: "POST",
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || "Network response was not ok");
-                }
-
-                const data = await response.json();
-
-                // Update EnerGuide label
-                document.getElementById("combined-fuel").textContent = data.combined_fuel;
-                document.getElementById("city-fuel").textContent = data.city_fuel;
-                document.getElementById("highway-fuel").textContent = data.highway_fuel;
-                document.getElementById("combined-mpg").textContent = data.combined_mpg;
-                document.getElementById("annual-fuel-cost").textContent = data.annual_fuel_cost;
-                document.getElementById("vehicle-class-range").textContent = data.vehicle_class_range;
-                document.getElementById("co2-value").textContent = data.prediction + " g/km";
-                document.getElementById("co2-bar").style.width = (data.prediction / 450) * 100 + "%";
-                document.getElementById("smog-value").textContent = data.smog_rating;
-                document.getElementById("smog-bar").style.width = (data.smog_rating / 10) * 100 + "%";
-            } catch (error) {
-                console.error("Error:", error);
-                formError.textContent = error.message;
-                formError.style.display = "block";
-            } finally {
-                loadingIndicator.style.display = "none";
-            }
-        });
-
-        // Reset form and EnerGuide label
-        document.getElementById("reset-form").addEventListener("click", function() {
-            const form = document.getElementById("predict-form");
-            form.reset();
-
-            // Set default values for inputs
-            form.querySelector("input[name='vehicle_year']").value = "2020";
-            form.querySelector("select[name='make']").value = "Toyota";
-            form.querySelector("select[name='transmission']").value = "Automated Manual";
-            form.querySelector("select[name='fuel_type']").value = "X";
-
-            // Clear error messages
-            document.querySelectorAll(".error-message").forEach(el => el.textContent = "");
-            const formError = document.getElementById("form-error");
-            formError.style.display = "none";
-            formError.textContent = "";
-
-            // Reset EnerGuide label to default values
-            document.getElementById("combined-fuel").textContent = "9.0";
-            document.getElementById("city-fuel").textContent = "10.7";
-            document.getElementById("highway-fuel").textContent = "7.4";
-            document.getElementById("combined-mpg").textContent = "31";
-            document.getElementById("annual-fuel-cost").textContent = "1,962";
-            document.getElementById("vehicle-class-range").textContent = "7.4 – 14.4";
-            document.getElementById("co2-value").textContent = "207 g/km";
-            document.getElementById("co2-bar").style.width = "46%";
-            document.getElementById("smog-value").textContent = "10";
-            document.getElementById("smog-bar").style.width = "100%";
-        });
-    </script>
 </body>
 </html>
