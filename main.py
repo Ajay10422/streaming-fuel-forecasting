@@ -9,6 +9,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.linear_model import Ridge
 import logging
 
 # Set up logging
@@ -26,14 +27,14 @@ templates = Jinja2Templates(directory="templates")
 if not os.path.exists("static"):
     os.makedirs("static")
 
-# Load the trained models
+# Load the trained Ridge models
 try:
-    co2_model = joblib.load("xgboost_model_CO2_emissions_(g_km).joblib")
-    combined_fuel_model = joblib.load("xgboost_model_Combined_(L_100_km).joblib")
-    city_fuel_model = joblib.load("xgboost_model_City_(L_100_km).joblib")
-    highway_fuel_model = joblib.load("xgboost_model_Highway_(L_100_km).joblib")
-    smog_model = joblib.load("xgboost_model_Smog_rating.joblib")
-    logger.info("All models loaded successfully")
+    co2_model = joblib.load("ridge_model_CO2_emissions_(g_km).joblib")
+    combined_fuel_model = joblib.load("ridge_model_Combined_(L_100_km).joblib")
+    city_fuel_model = joblib.load("ridge_model_City_(L_100_km).joblib")
+    highway_fuel_model = joblib.load("ridge_model_Highway_(L_100_km).joblib")
+    smog_model = joblib.load("ridge_model_Smog_rating.joblib")
+    logger.info("All Ridge models loaded successfully")
 except FileNotFoundError as e:
     logger.error(f"Model file not found: {e}")
     raise
