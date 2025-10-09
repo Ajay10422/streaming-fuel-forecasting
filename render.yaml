@@ -8,8 +8,7 @@ services:
   - type: pserv
     name: kafka
     runtime: docker
-    image:
-      url: redpandadata/redpanda:v23.3.12
+    image: redpandadata/redpanda:v23.3.12
     plan: starter # Private services generally need a paid plan for stability
     ports:
       - 9092 # Expose Kafka internally to your other Render services
@@ -18,6 +17,7 @@ services:
       --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
       --kafka-addr PLAINTEXT://0.0.0.0:9092
       --advertise-kafka-addr PLAINTEXT://kafka:9092
+
   # 2. The Streamlit Dashboard as a Web Service
   - type: web
     name: dashboard
@@ -66,21 +66,21 @@ services:
           property: hostport
       - key: PYTHONUNBUFFERED
         value: 1
+
   - type: worker
     name: silver-consumer
     env: python
     plan: free
-    preDeployCommand: mkdir -p data/bronze data/silver
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_silver.py
     envVars:
       - key: PYTHONUNBUFFERED
         value: 1
+
   - type: worker
     name: trainer
     env: python
     plan: free
-    preDeployCommand: mkdir -p data/silver
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_trainer.py
     envVars:
