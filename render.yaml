@@ -8,10 +8,12 @@ services:
   - type: pserv
     name: kafka
     runtime: docker
-    image: redpandadata/redpanda:v23.3.12
+    docker:
+      image: redpandadata/redpanda:v23.3.12
     plan: starter # Private services generally need a paid plan for stability
     ports:
-      - 9092 # Expose Kafka internally to your other Render services
+      - port: 9092
+        protocol: TCP
     startCommand: > # Use > for a multi-line command
       redpanda start
       --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
@@ -74,6 +76,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_silver.py
     envVars:
+      - key: KAFKA_BOOTSTRAP
+        fromService:
+          type: pserv
+          name: kafka
+          property: hostport
       - key: PYTHONUNBUFFERED
         value: 1
 
