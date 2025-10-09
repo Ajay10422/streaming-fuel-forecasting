@@ -1,0 +1,65 @@
+# render.yaml
+# This file defines the services for deploying the real-time ML pipeline on Render.
+
+services:
+  # 1. Kafka (Redpanda) as a Private Docker Service
+  # This service is not exposed to the public internet but is accessible
+  # to other services in the same Render account.
+  - type: pserv
+    name: kafka
+    dockerfilePath: ./Dockerfile.redpanda # We use a dedicated Dockerfile for Render
+    # Render's free tier for private services is limited.
+    # You may need a paid plan for this to run reliably.
+    # Note: Ephemeral disk means Kafka data is lost on restarts.
+
+  # 2. The Streamlit Dashboard as a Web Service
+  - type: web
+    name: dashboard
+    env: python
+    plan: free # Can start on the free tier
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run dashboard/training_monitor.py
+    envVars:
+      - key: PYTHONUNBUFFERED # Ensures logs appear in real-time
+        value: 1
+
+  # 3. The Data Producer as a Background Worker
+  - type: worker
+    name: producer
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python ingestion/producer.py
+    envVars:
+      - key: KAFKA_BOOTSTRAP
+        fromService:
+          type: pserv
+          name: kafka
+          property: hostport
+      - key: PYTHONUNBUFFERED
+        value: 1
+
+  # 4. The Bronze, Silver, and Trainer workers
+  # These are defined similarly to the producer.
+  - type: worker
+    name: bronze-consumer
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python transform/consumer_to_parquet.py
+    envVars:
+      - from: kafka-env
+
+  - type: worker
+    name: silver-consumer
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python transform/consumer_to_silver.py
+
+  - type: worker
+    name: trainer
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python transform/consumer_trainer.py
