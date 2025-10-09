@@ -1,100 +1,102 @@
-# render.yaml
-# Real-Time ML Pipeline Deployment on Render
-
-previewsEnabled: false
-
-volumes:
-  - name: pipeline-data
-    sizeGB: 1
+# render.yaml — Real-Time ML Pipeline on Render
 
 services:
-  # 1. Kafka (Redpanda) — Private Service
+  # 1) Kafka (Redpanda) — Private service pulling a prebuilt image
   - type: pserv
     name: kafka
-    image: redpandadata/redpanda:v23.3.12
+    runtime: image
     plan: starter
-    startCommand: >
+    image:
+      url: docker.io/redpandadata/redpanda:v23.3.12
+    # Override the container CMD to start Redpanda with our flags
+    dockerCommand: >
       redpanda start
       --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
       --kafka-addr PLAINTEXT://0.0.0.0:9092
       --advertise-kafka-addr PLAINTEXT://kafka:9092
 
-  # 2. Streamlit Dashboard (Web)
+  # 2) Streamlit Dashboard (Web) — builds from your repo Dockerfile
   - type: web
     name: dashboard
+    runtime: docker
     plan: starter
-    env: docker
     dockerfilePath: Dockerfile
-    startCommand: streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
+    dockerCommand: >
+      streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: KAFKA_BOOTSTRAP
         value: kafka:9092
-    volumes:
-      - name: pipeline-data
-        mountPath: /data
+    disk:
+      name: pipeline-data
+      mountPath: /data
+      sizeGB: 1
 
-  # 3. Producer Worker
+  # 3) Producer worker
   - type: worker
     name: producer
+    runtime: docker
     plan: starter
-    env: docker
     dockerfilePath: Dockerfile
-    startCommand: python ingestion/producer.py
+    dockerCommand: python ingestion/producer.py
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: KAFKA_BOOTSTRAP
         value: kafka:9092
-    volumes:
-      - name: pipeline-data
-        mountPath: /data
+    disk:
+      name: pipeline-data
+      mountPath: /data
+      sizeGB: 1
 
-  # 4. Bronze Consumer Worker
+  # 4) Bronze consumer worker
   - type: worker
     name: bronze-consumer
+    runtime: docker
     plan: starter
-    env: docker
     dockerfilePath: Dockerfile
-    startCommand: python transform/consumer_to_parquet.py
+    dockerCommand: python transform/consumer_to_parquet.py
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: KAFKA_BOOTSTRAP
         value: kafka:9092
-    volumes:
-      - name: pipeline-data
-        mountPath: /data
+    disk:
+      name: pipeline-data
+      mountPath: /data
+      sizeGB: 1
 
-  # 5. Silver Consumer Worker
+  # 5) Silver consumer worker
   - type: worker
     name: silver-consumer
+    runtime: docker
     plan: starter
-    env: docker
     dockerfilePath: Dockerfile
-    startCommand: python transform/consumer_to_silver.py
+    dockerCommand: python transform/consumer_to_silver.py
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: KAFKA_BOOTSTRAP
         value: kafka:9092
-    volumes:
-      - name: pipeline-data
-        mountPath: /data
+    disk:
+      name: pipeline-data
+      mountPath: /data
+      sizeGB: 1
 
-  # 6. Model Trainer Worker
+  # 6) Trainer worker
   - type: worker
     name: trainer
+    runtime: docker
     plan: starter
-    env: docker
     dockerfilePath: Dockerfile
-    startCommand: python transform/consumer_trainer.py
+    dockerCommand: python transform/consumer_trainer.py
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: KAFKA_BOOTSTRAP
         value: kafka:9092
-    volumes:
-      - name: pipeline-data
-        mountPath: /data
+    disk:
+      name: pipeline-data
+      mountPath: /data
+      sizeGB: 1
