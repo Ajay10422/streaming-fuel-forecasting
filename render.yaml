@@ -8,6 +8,7 @@ services:
   - type: pserv
     name: kafka
     dockerfilePath: ./Dockerfile.redpanda # We use a dedicated Dockerfile for Render
+    runtime: docker
     # Render's free tier for private services is limited.
     # You may need a paid plan for this to run reliably.
     # Note: Ephemeral disk means Kafka data is lost on restarts.
@@ -48,7 +49,13 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_parquet.py
     envVars:
-      - from: kafka-env
+      - key: KAFKA_BOOTSTRAP
+        fromService:
+          type: pserv
+          name: kafka
+          property: hostport
+      - key: PYTHONUNBUFFERED
+        value: 1
 
   - type: worker
     name: silver-consumer
@@ -56,6 +63,9 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_silver.py
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: 1
 
   - type: worker
     name: trainer
@@ -63,3 +73,6 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_trainer.py
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: 1
