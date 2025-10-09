@@ -1,5 +1,0 @@
-# Use a base image that has docker-compose
-FROM docker/compose:1.29.2
-
-COPY docker-compose.kafka.yml .
-CMD ["up"]
