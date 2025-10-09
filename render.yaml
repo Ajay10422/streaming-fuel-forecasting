@@ -1,42 +1,36 @@
 # render.yaml
-# This file defines the services for deploying the real-time ML pipeline on Render.
+# Services for deploying the real-time ML pipeline on Render.
 
 services:
-  # 1. Kafka (Redpanda) as a Private Docker Service
-  # This service is not exposed to the public internet but is accessible
-  # to other services in the same Render account.
+  # 1) Kafka (Redpanda) as a Private Service
   - type: pserv
     name: kafka
-    runtime: docker
-    docker:
-      image: redpandadata/redpanda:v23.3.12
-    plan: starter # Private services generally need a paid plan for stability
-    ports:
-      - port: 9092
-        protocol: TCP
-    startCommand: > # Use > for a multi-line command
+    env: docker
+    image: redpandadata/redpanda:v23.3.12
+    plan: starter
+    dockerCommand: >
       redpanda start
       --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
       --kafka-addr PLAINTEXT://0.0.0.0:9092
-      --advertise-kafka-addr PLAINTEXT://kafka:9092
+      --advertise-kafka-addr PLAINTEXT://${RENDER_INTERNAL_HOSTNAME}:9092
 
-  # 2. The Streamlit Dashboard as a Web Service
+  # 2) Streamlit Dashboard (Web)
   - type: web
     name: dashboard
     env: python
-    plan: free # Can start on the free tier
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
     envVars:
-      - key: PYTHONUNBUFFERED # Ensures logs appear in real-time
-        value: 1
+      - key: PYTHONUNBUFFERED
+        value: "1"
       - key: KAFKA_BOOTSTRAP
         fromService:
           type: pserv
           name: kafka
           property: hostport
 
-  # 3. The Data Producer as a Background Worker
+  # 3) Data Producer (Worker)
   - type: worker
     name: producer
     env: python
@@ -44,16 +38,15 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python ingestion/producer.py
     envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
       - key: KAFKA_BOOTSTRAP
         fromService:
           type: pserv
           name: kafka
           property: hostport
-      - key: PYTHONUNBUFFERED
-        value: 1
 
-  # 4. The Bronze, Silver, and Trainer workers
-  # These are defined similarly to the producer.
+  # 4) Bronze Consumer (Worker)
   - type: worker
     name: bronze-consumer
     env: python
@@ -61,14 +54,15 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_parquet.py
     envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
       - key: KAFKA_BOOTSTRAP
         fromService:
           type: pserv
           name: kafka
           property: hostport
-      - key: PYTHONUNBUFFERED
-        value: 1
 
+  # 5) Silver Consumer (Worker)
   - type: worker
     name: silver-consumer
     env: python
@@ -76,14 +70,15 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_silver.py
     envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
       - key: KAFKA_BOOTSTRAP
         fromService:
           type: pserv
           name: kafka
           property: hostport
-      - key: PYTHONUNBUFFERED
-        value: 1
 
+  # 6) Trainer (Worker)
   - type: worker
     name: trainer
     env: python
@@ -92,4 +87,4 @@ services:
     startCommand: python transform/consumer_trainer.py
     envVars:
       - key: PYTHONUNBUFFERED
-        value: 1
+        value: "1"
