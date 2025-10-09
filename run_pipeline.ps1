@@ -12,7 +12,7 @@ Write-Host "🚀 Starting Streaming ML Pipeline..." -ForegroundColor Cyan
 
 # ---- Quick existence checks (helpful errors) ----
 $need = @(
-  "docker-compose.kafka.yml",
+  "docker-compose.yml",
   "ingestion\producer.py",
   "transform\consumer_to_parquet.py",
   "transform\consumer_to_silver.py",
@@ -30,7 +30,8 @@ New-Item -ItemType Directory -Force -Path "data\silver" | Out-Null
 
 # ---- 0) Kafka ----
 Write-Host "`n▶️ Starting Kafka (Redpanda)..." -ForegroundColor Yellow
-docker compose -f docker-compose.kafka.yml up -d
+# We now use the default 'docker-compose.yml' file, so the -f flag is not needed.
+docker compose up -d
 
 Start-Sleep -Seconds 3
 

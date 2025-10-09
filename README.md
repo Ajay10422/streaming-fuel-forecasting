@@ -27,7 +27,7 @@ This project demonstrates a complete, end-to-end streaming machine learning pipe
 │   ├── consumer_to_parquet.py # Bronze layer writer
 │   ├── consumer_to_silver.py  # Silver layer writer
 │   └── consumer_trainer.py    # Model trainer
-├── docker-compose.kafka.yml  # Docker Compose for Redpanda (Kafka)
+├── docker-compose.yml        # Docker Compose for Redpanda (Kafka)
 ├── requirements.txt          # Python dependencies
 ├── .gitignore                # Files to ignore for Git
 ├── .env.example              # Environment variable template
