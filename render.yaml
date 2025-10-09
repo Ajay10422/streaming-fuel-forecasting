@@ -21,9 +21,15 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED # Ensures logs appear in real-time
         value: 1
+<<<<<<< Updated upstream
     disks: # Use 'disks' (plural) list
       - name: pipeline-data
         mountPath: /data # Specify mount path for each attachment
+=======
+    disk:
+      name: pipeline-data
+      mountPath: /data
+>>>>>>> Stashed changes
 
 
   # 3. The Data Producer as a Background Worker
@@ -36,9 +42,15 @@ services:
     envVars: # KAFKA_BOOTSTRAP will be added manually in Render UI
       - key: PYTHONUNBUFFERED
         value: 1
+<<<<<<< Updated upstream
     disks:
       - name: pipeline-data
         mountPath: /data
+=======
+    disk:
+      name: pipeline-data
+      mountPath: /data
+>>>>>>> Stashed changes
 
   # 4. The Bronze, Silver, and Trainer workers (all need the disk)
   - type: worker
@@ -50,9 +62,15 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: 1
+<<<<<<< Updated upstream
     disks:
       - name: pipeline-data
         mountPath: /data
+=======
+    disk:
+      name: pipeline-data
+      mountPath: /data
+>>>>>>> Stashed changes
 
   - type: worker
     name: silver-consumer
@@ -63,9 +81,15 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: 1
+<<<<<<< Updated upstream
     disks:
       - name: pipeline-data
         mountPath: /data
+=======
+    disk:
+      name: pipeline-data
+      mountPath: /data
+>>>>>>> Stashed changes
 
   - type: worker
     name: trainer
@@ -76,6 +100,12 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: 1
+<<<<<<< Updated upstream
     disks:
       - name: pipeline-data
         mountPath: /data
+=======
+    disk:
+      name: pipeline-data
+      mountPath: /data
+>>>>>>> Stashed changes
