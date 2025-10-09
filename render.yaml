@@ -8,7 +8,8 @@ services:
   - type: pserv
     name: kafka
     runtime: docker
-    image: redpandadata/redpanda:v23.3.12
+    image:
+      url: redpandadata/redpanda:v23.3.12
     plan: starter # Private services generally need a paid plan for stability
     ports:
       - 9092 # Expose Kafka internally to your other Render services
