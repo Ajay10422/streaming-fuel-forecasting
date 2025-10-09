@@ -8,10 +8,15 @@ services:
   - type: pserv
     name: kafka
     runtime: docker
-    dockerComposeCommand: docker-compose -f docker-compose.kafka.yml up -d
-    # Render's free tier for private services is limited.
-    # You may need a paid plan for this to run reliably.
-    # Note: Ephemeral disk means Kafka data is lost on restarts.
+    image: redpandadata/redpanda:v23.3.12
+    plan: starter # Private services generally need a paid plan for stability
+    ports:
+      - 9092 # Expose Kafka internally to your other Render services
+    startCommand: > # Use > for a multi-line command
+      redpanda start
+      --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
+      --kafka-addr PLAINTEXT://0.0.0.0:9092
+      --advertise-kafka-addr PLAINTEXT://kafka:9092
 
   # 2. The Streamlit Dashboard as a Web Service
   - type: web
@@ -19,7 +24,7 @@ services:
     env: python
     plan: free # Can start on the free tier
     buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run dashboard/training_monitor.py
+    startCommand: streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: PYTHONUNBUFFERED # Ensures logs appear in real-time
         value: 1
