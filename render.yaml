@@ -4,7 +4,6 @@
 disks:
   - name: pipeline-data
     sizeGB: 1 # Smallest size, sufficient for this project
-    mountPath: /data
 
 services:
   # 1. Kafka is now external (e.g., Upstash/Confluent).
