@@ -1,5 +1,11 @@
 # render.yaml
 # This file defines the services for deploying the real-time ML pipeline on Render.
+# This is a "Blueprint" that tells Render how to build and run your project.
+
+# Disable Pull Request Previews. This is recommended for pipelines to avoid
+# creating separate, isolated environments for each PR, which can be costly
+# and is not usually the desired behavior for a stateful pipeline.
+previews: false
 
 disks:
   - name: pipeline-data
@@ -14,7 +20,7 @@ services:
   - type: web
     name: dashboard
     env: python
-    plan: starter # Upgrade to prevent spin-down for a better UX
+    plan: starter # IMPORTANT: Upgrade to a paid plan to prevent spin-down for a better UX.
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
     envVars:
@@ -29,7 +35,7 @@ services:
   - type: worker
     name: producer
     env: python
-    plan: starter # CRITICAL: Upgrade to prevent spin-down
+    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
     buildCommand: pip install -r requirements.txt
     startCommand: python ingestion/producer.py
     envVars: # KAFKA_BOOTSTRAP will be added manually in Render UI
@@ -43,7 +49,7 @@ services:
   - type: worker
     name: bronze-consumer
     env: python
-    plan: starter # CRITICAL: Upgrade to prevent spin-down
+    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_parquet.py
     envVars:
@@ -56,7 +62,7 @@ services:
   - type: worker
     name: silver-consumer
     env: python
-    plan: starter # CRITICAL: Upgrade to prevent spin-down
+    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_silver.py
     envVars:
@@ -69,7 +75,7 @@ services:
   - type: worker
     name: trainer
     env: python
-    plan: starter # CRITICAL: Upgrade to prevent spin-down
+    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_trainer.py
     envVars:
