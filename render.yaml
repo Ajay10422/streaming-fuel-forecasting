@@ -7,8 +7,8 @@ services:
   # to other services in the same Render account.
   - type: pserv
     name: kafka
-    dockerfilePath: ./Dockerfile.redpanda # We use a dedicated Dockerfile for Render
     runtime: docker
+    dockerComposeCommand: docker-compose -f docker-compose.kafka.yml up -d
     # Render's free tier for private services is limited.
     # You may need a paid plan for this to run reliably.
     # Note: Ephemeral disk means Kafka data is lost on restarts.
