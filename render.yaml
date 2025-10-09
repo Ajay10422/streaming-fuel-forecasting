@@ -3,9 +3,10 @@
 # Real-Time ML Pipeline Deployment on Render
 # ===============================
 
+# Disable PR previews (recommended for pipelines)
 previews: false
 
-# Optional: A small disk for intermediate data (bronze/silver layers, metrics)
+# Optional disk for intermediate bronze/silver data + metrics
 disks:
   - name: pipeline-data
     sizeGB: 1
@@ -32,6 +33,7 @@ services:
     name: dashboard
     env: docker
     plan: starter
+    dockerfilePath: Dockerfile
     startCommand: streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: PYTHONUNBUFFERED
@@ -47,6 +49,7 @@ services:
     name: producer
     env: docker
     plan: starter
+    dockerfilePath: Dockerfile
     startCommand: python ingestion/producer.py
     envVars:
       - key: PYTHONUNBUFFERED
@@ -62,6 +65,7 @@ services:
     name: bronze-consumer
     env: docker
     plan: starter
+    dockerfilePath: Dockerfile
     startCommand: python transform/consumer_to_parquet.py
     envVars:
       - key: PYTHONUNBUFFERED
@@ -77,6 +81,7 @@ services:
     name: silver-consumer
     env: docker
     plan: starter
+    dockerfilePath: Dockerfile
     startCommand: python transform/consumer_to_silver.py
     envVars:
       - key: PYTHONUNBUFFERED
@@ -92,6 +97,7 @@ services:
     name: trainer
     env: docker
     plan: starter
+    dockerfilePath: Dockerfile
     startCommand: python transform/consumer_trainer.py
     envVars:
       - key: PYTHONUNBUFFERED
