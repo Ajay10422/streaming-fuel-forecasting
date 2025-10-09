@@ -1,81 +1,103 @@
 # render.yaml
-# This file defines the services for deploying the real-time ML pipeline on Render.
-# This is a "Blueprint" that tells Render how to build and run your project.
+# ===============================
+# Real-Time ML Pipeline Deployment on Render
+# ===============================
 
-# Disable Pull Request Previews. This is recommended for pipelines to avoid
-# creating separate, isolated environments for each PR, which can be costly
-# and is not usually the desired behavior for a stateful pipeline.
 previews: false
 
+# Optional: A small disk for intermediate data (bronze/silver layers, metrics)
 disks:
   - name: pipeline-data
-    sizeGB: 1 # Smallest size, sufficient for this project
+    sizeGB: 1
 
 services:
-  # 1. Kafka is now external (e.g., Upstash/Confluent).
-  # You will set the KAFKA_* environment variables in the Render dashboard
-  # for each service that needs them. The self-hosted Kafka service is removed.
+  # 1. Kafka (Redpanda) — Private Service
+  - type: pserv
+    name: kafka
+    env: docker
+    plan: starter
+    docker:
+      image: redpandadata/redpanda:v23.3.12
+    startCommand: >
+      redpanda start
+      --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
+      --kafka-addr PLAINTEXT://0.0.0.0:9092
+      --advertise-kafka-addr PLAINTEXT://kafka:9092
+    ports:
+      - port: 9092
+        protocol: TCP
 
-  # 2. The Streamlit Dashboard
+  # 2. Streamlit Dashboard (Web)
   - type: web
     name: dashboard
     env: docker
-    plan: starter # IMPORTANT: Upgrade to a paid plan to prevent spin-down for a better UX.
+    plan: starter
     startCommand: streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
     envVars:
-      - key: PYTHONUNBUFFERED # Ensures logs appear in real-time
-        value: 1
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: KAFKA_BOOTSTRAP
+        value: kafka:9092
     disk:
       name: pipeline-data
       mountPath: /data
 
-
-  # 3. The Data Producer as a Background Worker
+  # 3. Data Producer Worker
   - type: worker
     name: producer
     env: docker
-    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
+    plan: starter
     startCommand: python ingestion/producer.py
-    envVars: # KAFKA_BOOTSTRAP will be added manually in Render UI
+    envVars:
       - key: PYTHONUNBUFFERED
-        value: 1
+        value: "1"
+      - key: KAFKA_BOOTSTRAP
+        value: kafka:9092
     disk:
       name: pipeline-data
       mountPath: /data
 
-  # 4. The Bronze, Silver, and Trainer workers (all need the disk)
+  # 4. Bronze Consumer Worker
   - type: worker
     name: bronze-consumer
     env: docker
-    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
+    plan: starter
     startCommand: python transform/consumer_to_parquet.py
     envVars:
       - key: PYTHONUNBUFFERED
-        value: 1
+        value: "1"
+      - key: KAFKA_BOOTSTRAP
+        value: kafka:9092
     disk:
       name: pipeline-data
       mountPath: /data
 
+  # 5. Silver Consumer Worker
   - type: worker
     name: silver-consumer
     env: docker
-    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
+    plan: starter
     startCommand: python transform/consumer_to_silver.py
     envVars:
       - key: PYTHONUNBUFFERED
-        value: 1
+        value: "1"
+      - key: KAFKA_BOOTSTRAP
+        value: kafka:9092
     disk:
       name: pipeline-data
       mountPath: /data
 
+  # 6. Model Trainer Worker
   - type: worker
     name: trainer
     env: docker
-    plan: starter # CRITICAL: Upgrade to a paid plan to prevent spin-down.
+    plan: starter
     startCommand: python transform/consumer_trainer.py
     envVars:
       - key: PYTHONUNBUFFERED
-        value: 1
+        value: "1"
+      - key: KAFKA_BOOTSTRAP
+        value: kafka:9092
     disk:
       name: pipeline-data
       mountPath: /data
