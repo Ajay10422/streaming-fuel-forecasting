@@ -147,48 +147,6 @@ def read_full_silver_data():
     except Exception:
         return None
 
-# --------------------------- Pipeline Control ---------------------------
-
-if 'pipeline_process' not in st.session_state:
-    st.session_state.pipeline_process = None
-
-st.sidebar.header("Pipeline Control")
-
-if st.session_state.pipeline_process is None:
-    if st.sidebar.button("🚀 Start Pipeline"):
-        try:
-            # Use the PowerShell script to launch everything
-            st.session_state.pipeline_process = subprocess.Popen(
-                ["powershell.exe", "-File", "run_pipeline.ps1"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-            )
-            st.sidebar.success("Pipeline starting in the background...")
-            st.rerun()
-        except Exception as e:
-            st.sidebar.error(f"Failed to start pipeline: {e}")
-            st.session_state.pipeline_process = None
-else:
-    st.sidebar.success("Pipeline is running.")
-    if st.sidebar.button("🛑 Stop Pipeline"):
-        try:
-            # Terminate the entire process group started by PowerShell
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(st.session_state.pipeline_process.pid)])
-            # Also explicitly stop the docker container
-            subprocess.run(["docker", "compose", "-f", "docker-compose.kafka.yml", "down"])
-            st.sidebar.warning("Pipeline shutdown initiated.")
-            st.session_state.pipeline_process = None
-            st.rerun()
-        except Exception as e:
-            st.sidebar.error(f"Failed to stop pipeline: {e}")
-
-with st.sidebar.expander("Pipeline Logs"):
-    if st.session_state.pipeline_process:
-        st.info("Logs from run_pipeline.ps1 will appear here if it prints to stdout/stderr. Note: Real-time updates are limited in Streamlit.")
-        # This is a simplified log view; more robust logging would require a different approach.
-
 # --------------------------- Live Dashboard Loop ---------------------------
 
 placeholder = st.empty()
