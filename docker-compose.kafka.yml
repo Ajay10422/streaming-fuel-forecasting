@@ -12,6 +12,6 @@ services:
       - --reserve-memory=0M
       - --check=false
       - --kafka-addr=PLAINTEXT://0.0.0.0:9092
-      - --advertise-kafka-addr=PLAINTEXT://localhost:9092
+      - --advertise-kafka-addr=PLAINTEXT://${RENDER_INTERNAL_HOSTNAME:-localhost}:9092
     ports:
       - "9092:9092"
