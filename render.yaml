@@ -77,11 +77,6 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_silver.py
     envVars:
-      - key: KAFKA_BOOTSTRAP
-        fromService:
-          type: pserv
-          name: kafka
-          property: hostport
       - key: PYTHONUNBUFFERED
         value: 1
 
@@ -92,10 +87,5 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_trainer.py
     envVars:
-      - key: KAFKA_BOOTSTRAP # This was missing
-        fromService:
-          type: pserv
-          name: kafka
-          property: hostport
       - key: PYTHONUNBUFFERED
         value: 1
