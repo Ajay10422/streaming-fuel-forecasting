@@ -69,6 +69,7 @@ services:
     name: silver-consumer
     env: python
     plan: free
+    preDeployCommand: mkdir -p data/bronze data/silver
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_silver.py
     envVars:
@@ -78,6 +79,7 @@ services:
     name: trainer
     env: python
     plan: free
+    preDeployCommand: mkdir -p data/silver
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_trainer.py
     envVars:
