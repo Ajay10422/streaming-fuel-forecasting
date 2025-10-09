@@ -1,18 +1,12 @@
 # render.yaml
-# ===============================
-# Real-Time ML Pipeline Deployment on Render
-# ===============================
-
-# Disable PR previews (recommended for pipelines)
 previews: false
 
-# Optional disk for intermediate bronze/silver data + metrics
 disks:
   - name: pipeline-data
     sizeGB: 1
 
 services:
-  # 1. Kafka (Redpanda) — Private Service
+  # 1) Kafka (Redpanda) – pserv using official image (no Dockerfile)
   - type: pserv
     name: kafka
     env: docker
@@ -28,7 +22,7 @@ services:
       - port: 9092
         protocol: TCP
 
-  # 2. Streamlit Dashboard (Web)
+  # 2) Streamlit Dashboard (Web)
   - type: web
     name: dashboard
     env: docker
@@ -44,7 +38,7 @@ services:
       name: pipeline-data
       mountPath: /data
 
-  # 3. Data Producer Worker
+  # 3) Producer
   - type: worker
     name: producer
     env: docker
@@ -60,7 +54,7 @@ services:
       name: pipeline-data
       mountPath: /data
 
-  # 4. Bronze Consumer Worker
+  # 4) Bronze Consumer
   - type: worker
     name: bronze-consumer
     env: docker
@@ -76,7 +70,7 @@ services:
       name: pipeline-data
       mountPath: /data
 
-  # 5. Silver Consumer Worker
+  # 5) Silver Consumer
   - type: worker
     name: silver-consumer
     env: docker
@@ -92,7 +86,7 @@ services:
       name: pipeline-data
       mountPath: /data
 
-  # 6. Model Trainer Worker
+  # 6) Trainer
   - type: worker
     name: trainer
     env: docker
@@ -107,3 +101,4 @@ services:
     disk:
       name: pipeline-data
       mountPath: /data
+  
