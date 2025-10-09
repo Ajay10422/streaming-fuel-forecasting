@@ -1,27 +1,17 @@
 # render.yaml
 # This file defines the services for deploying the real-time ML pipeline on Render.
 
-services:
-  # 1. Kafka (Redpanda) as a Private Docker Service
-  # This service is not exposed to the public internet but is accessible
-  # to other services in the same Render account.
-  - type: pserv
-    name: kafka
-    runtime: docker # Use 'runtime' for docker, not 'env'
-    docker: # The 'image' key must be nested under 'docker'
-      image: redpandadata/redpanda:v23.3.12
-    plan: starter # Private services generally need a paid plan for stability
-    ports: # The ports section was missing
-      - port: 9092
-        protocol: TCP
-    startCommand: > # Use 'startCommand', not 'dockerCommand'
-      redpanda start
-      --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
-      --kafka-addr PLAINTEXT://0.0.0.0:9092
-      # Advertise using the service name for internal discovery
-      --advertise-kafka-addr PLAINTEXT://kafka:9092
+disks:
+  - name: pipeline-data
+    sizeGB: 1 # Smallest size, sufficient for this project
+    mountPath: /data
 
-  # 2. The Streamlit Dashboard as a Web Service
+services:
+  # 1. Kafka is now external (e.g., Upstash/Confluent).
+  # You will set the KAFKA_* environment variables in the Render dashboard
+  # for each service that needs them. The self-hosted Kafka service is removed.
+
+  # 2. The Streamlit Dashboard
   - type: web
     name: dashboard
     env: python
@@ -31,11 +21,10 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED # Ensures logs appear in real-time
         value: 1
-      - key: KAFKA_BOOTSTRAP
-        fromService:
-          type: pserv
-          name: kafka
-          property: hostport
+    disk:
+      name: pipeline-data
+      mountPath: /data
+      
 
   # 3. The Data Producer as a Background Worker
   - type: worker
@@ -44,17 +33,14 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python ingestion/producer.py
-    envVars:
-      - key: KAFKA_BOOTSTRAP
-        fromService:
-          type: pserv
-          name: kafka
-          property: hostport
+    envVars: # KAFKA_BOOTSTRAP will be added manually in Render UI
       - key: PYTHONUNBUFFERED
         value: 1
+    disk:
+      name: pipeline-data
+      mountPath: /data
 
-  # 4. The Bronze, Silver, and Trainer workers
-  # These are defined similarly to the producer.
+  # 4. The Bronze, Silver, and Trainer workers (all need the disk)
   - type: worker
     name: bronze-consumer
     env: python
@@ -62,13 +48,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python transform/consumer_to_parquet.py
     envVars:
-      - key: KAFKA_BOOTSTRAP
-        fromService:
-          type: pserv
-          name: kafka
-          property: hostport
       - key: PYTHONUNBUFFERED
         value: 1
+    disk:
+      name: pipeline-data
+      mountPath: /data
 
   - type: worker
     name: silver-consumer
@@ -79,6 +63,9 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: 1
+    disk:
+      name: pipeline-data
+      mountPath: /data
 
   - type: worker
     name: trainer
@@ -89,3 +76,6 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: 1
+    disk:
+      name: pipeline-data
+      mountPath: /data
