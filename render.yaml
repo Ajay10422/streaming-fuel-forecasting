@@ -4,7 +4,7 @@ services:
   # 1) Kafka (Redpanda) — Private service pulling a prebuilt image
   - type: pserv
     name: kafka
-    env: docker
+    runtime: image
     plan: starter
     image:
       url: docker.io/redpandadata/redpanda:v23.3.12
@@ -17,7 +17,7 @@ services:
   # 2) Streamlit Dashboard (Web) — builds from your repo Dockerfile
   - type: web
     name: dashboard
-    env: docker
+    runtime: docker
     plan: starter
     dockerfilePath: Dockerfile
     dockerCommand: >
@@ -35,7 +35,7 @@ services:
   # 3) Producer worker
   - type: worker
     name: producer
-    env: docker
+    runtime: docker
     plan: starter
     dockerfilePath: Dockerfile
     dockerCommand: python ingestion/producer.py
@@ -52,7 +52,7 @@ services:
   # 4) Bronze consumer worker
   - type: worker
     name: bronze-consumer
-    env: docker
+    runtime: docker
     plan: starter
     dockerfilePath: Dockerfile
     dockerCommand: python transform/consumer_to_parquet.py
@@ -69,7 +69,7 @@ services:
   # 5) Silver consumer worker
   - type: worker
     name: silver-consumer
-    env: docker
+    runtime: docker
     plan: starter
     dockerfilePath: Dockerfile
     dockerCommand: python transform/consumer_to_silver.py
@@ -86,7 +86,7 @@ services:
   # 6) Trainer worker
   - type: worker
     name: trainer
-    env: docker
+    runtime: docker
     plan: starter
     dockerfilePath: Dockerfile
     dockerCommand: python transform/consumer_trainer.py
