@@ -1,15 +1,13 @@
 # render.yaml — Real-Time ML Pipeline on Render
 
 services:
-  # 1) Kafka (Redpanda) — Private service pulling a prebuilt image
   - type: pserv
     name: kafka
-    env: docker
+    runtime: image
     plan: starter
     image:
-      url: docker.io/redpandadata/redpanda:v23.3.12
-    # Override the container CMD to start Redpanda with our flags
-   dockerCommand: >
+      url: [docker.io/redpandadata/redpanda](https://docker.io/redpandadata/redpanda):v23.3.12
+  dockerCommand: >
     redpanda start
     --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
     --kafka-addr PLAINTEXT://0.0.0.0:9092
