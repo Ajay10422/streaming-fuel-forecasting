@@ -9,20 +9,19 @@ services:
     image:
       url: docker.io/redpandadata/redpanda:v23.3.12
     # Override the container CMD to start Redpanda with our flags
-    dockerCommand: >
-      redpanda start
-      --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
-      --kafka-addr PLAINTEXT://0.0.0.0:9092
-      --advertise-kafka-addr PLAINTEXT://kafka:9092
-
+   dockerCommand: >
+    redpanda start
+    --overprovisioned --smp=1 --memory=1G --reserve-memory=0M --check=false
+    --kafka-addr PLAINTEXT://0.0.0.0:9092
+    --advertise-kafka-addr PLAINTEXT://kafka:9092
   # 2) Streamlit Dashboard (Web) — builds from your repo Dockerfile
   - type: web
     name: dashboard
     env: docker
     plan: starter
     dockerfilePath: Dockerfile
-    dockerCommand: >
-      streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
+  dockerCommand: >
+    streamlit run dashboard/training_monitor.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
